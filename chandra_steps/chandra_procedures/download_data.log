@@ -1,0 +1,23 @@
+# Summary on Data Downloading
+如果依照实验设计，我们关心的两个超新星遗迹为：
+  Coordinate        Nickname  ObsID ExpTime  ObsPI
+1. SNR J0535.7-6918 Honeycomb 1967  101.0 ks McCray
+2. SNR J0550.4-6823           3850   68.0 ks Seward
+
+以下两种下载数据的方式均可：
+1. 通过CIAO命令download_chandra_obsid下载：
+download_chandra_obsid ObsID
+
+2. 通过Chandra数据搜索网站下载：
+1>. 在
+http://cda.harvard.edu/chaser/
+的Observation ID中输入相应的ObsID（按Target Name搜索亦可，
+但不保证目标的名字能够被识别），
+2>. 点击搜索，
+3>. 在搜索结果页面中勾选所需的数据，点击"Add Products to Retrieval List",
+4>. 在索取结果页面中点击"Retrieve Products",
+5>. 在新的页面中填写邮箱地址，等待数据准备好；
+6>. 按照通知邮件中给出的ftp链接下载。
+
+虽然没有用过第一种方法，但是个人依旧推荐第二种，因为1. ftp支持断点续传；
+2. 第二种会将数据文件做成压缩包传输，大大节省了所需的传输量。

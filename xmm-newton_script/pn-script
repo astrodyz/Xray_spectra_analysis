@@ -1,0 +1,73 @@
+evselect table=pn.fits withimageset=yes imageset=image.fits  xcolumn=RAWX ycolumn=RAWY imagebinning=binSize ximagebinsize=1 yimagebinsize=1
+
+#isis############
+xcounts=fits_read_img("image.fits");
+n=[0:array_shape(xcounts)[1]-1:1];
+plot(n,xcounts[n]);
+print(where(xcounts[n]==max(xcounts[n])));
+
+###############
+
+
+evselect table=pn.fits withimageset=yes imageset=pi_x.fits  xcolumn=PI ycolumn=RAWX imagebinning=binSize ximagebinsize=100 yimagebinsize=1 
+
+############evselect table=pn.fits withfilteredset=yes  expression='(PI in [200:15000])'  filteredset=pn_zzz.fits filtertype=expression keepfilteroutput=yes  updateexposure=yes filterexposure=yes
+evselect table=pn_zzz.fits withimageset=yes imageset=pi_x.fits  xcolumn=PI ycolumn=RAWX imagebinning=binSize ximagebinsize=100 yimagebinsize=1 
+
+
+
+#####rough lightcurve#####
+evselect table=pn.fits withrateset=yes rateset=pn_ltcrv.fits maketimecolumn=yes timecolumn=TIME timebinsize=50 makeratecolumn=yes
+
+dsplot table=pn_ltcrv.fits x=TIME y=RATE
+
+
+####filter
+evselect table=pn.fits withfilteredset=yes  expression='(PATTERN <= 4)&&(PI in [150:15000])&&#XMMEA_EP'  filteredset=pn_filt.fits filtertype=expression keepfilteroutput=yes  updateexposure=yes filterexposure=yes
+
+######
+evselect table=pn_filt.fits imagebinning=binSize imageset=image.fits withimageset=yes xcolumn=RAWX ycolumn=RAWY ximagebinsize=1 yimagebinsize=1
+
+
+
+evselect table=pn_filt.fits withspectrumset=yes spectrumset=source_pi.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (RAWX in [36:40])' withfilteredset=yes filteredset=pn_filt_source.fits
+
+evselect table=pn_filt.fits withspectrumset=yes spectrumset=bkg_pi.fits  energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG==0) && (RAWX in [3:5])'  withfilteredset=yes filteredset=pn_filt_bkg.fits
+
+backscale spectrumset=source_pi.fits badpixlocation=pn_filt.fits
+backscale spectrumset=bkg_pi.fits badpixlocation=pn_filt.fits
+
+epatplot set=pn_filt_source.fits plotfile=pn_epat.ps useplotfile=yes withbackgroundset=yes backgroundset=pn_filt_bkg.fits 
+###pile up!!c
+
+evselect table=pn_filt.fits withspectrumset=yes spectrumset=source_pi_WithBore.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=20479 expression='(FLAG ==0) && (RAWX in [33:43])' withfilteredset=yes filteredset=pn_filt_source_WithBore.fits 
+
+evselect table=pn_filt.fits withspectrumset=yes spectrumset=source_pi_NoBore.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 expression='(FLAG ==0) && (RAWX in [33:43]) &&! (RAWX in [36:40])' specchannelmax=20479 withfilteredset=yes filteredset=pn_filt_source_NoBore.fits 
+
+evselect table=pn_filt.fits withspectrumset=yes spectrumset=source_pi_Excised.fits  energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0  specchannelmax=20479 expression='RAWX in [36:40]' withfilteredset=yes filteredset=pn_filt_source_Excised.fits 
+
+backscale spectrumset=source_pi_WithBore.fits badpixlocation=pn_filt.fits
+backscale spectrumset=source_pi_NoBore.fits   badpixlocation=pn_filt.fits
+backscale spectrumset=source_pi_Excised.fits  badpixlocation=pn_filt.fits
+
+epatplot set=pn_filt_source_NoBore.fits plotfile=pn_epat.ps useplotfile=yes withbackgroundset=yes backgroundset=pn_filt_bkg.fits 
+
+
+rmfgen rmfset=source_rmf.fits spectrumset=source_pi.fits
+
+#arfgen spectrumset=source_pi.fits arfset=source_arf.fis withrmfset=yes rmfset=source_rmf.fits badpixlocation=pn_filt.fits detmaptype=psf 
+
+arfgen arfset=source_arf_WithBore.fits spectrumset=source_pi_WithBore.fits detmaptype=psf 
+arfgen arfset=source_arf_Excised.fits spectrumset=source_pi_Excised.fits detmaptype=psf 
+addarf "source_arf_WithBore.fits source_arf_Excised.fits" "1.0 -1.0" source_arf.fits
+
+
+####detail lightcurve####
+evselect table=pn_filt_source.fits withrateset=yes rateset="pn_source_lightcurve_raw.lc" timebinsize=1 maketimecolumn=yes makeratecolumn=yes 
+
+
+
+
+
+
+

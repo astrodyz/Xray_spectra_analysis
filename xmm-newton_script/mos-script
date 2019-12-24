@@ -1,0 +1,71 @@
+###### MOS1 is imaging mode, MOS2 is timing mode
+
+
+emproc
+ln -s *EMOS1*ImagingEvts* mos1_evt.fits
+ln -s *EMOS2*ImagingEvts* mos2_evt.fits
+ln -s *EMOS2*TimingEvts* mosT_evt.fits
+
+
+
+#########################################  MOS1
+#########################################
+evselect table=mos1_evt.fits withfilteredset=yes expression='(PATTERN <= 12)&&(PI in [150:12000])&&#XMMEA_EM' filteredset=mos1_filt.fits filtertype=expression keepfilteroutput=yes  updateexposure=yes filterexposure=yes
+
+evselect table=mos1_filt.fits withimageset=true imageset=mos1_image.fits xcolumn=X ycolumn=Y imagebinning=binSize ximagebinsize=80 yimagebinsize=80
+
+###gti filter if need
+
+evselect table='mos1_filt.fits' energycolumn='PI' withfilteredset=yes filteredset='mos1_source.fits' keepfilteroutput=yes filtertype='expression' expression='((X,Y) in CIRCLE(27593.352,27093.816,2000))&&!((X,Y) in CIRCLE(27593.352,27093.816,1000))' withspectrumset=yes spectrumset='mos1_source_pi.fits' spectralbinsize=5  withspecranges=yes specchannelmin=0 specchannelmax=11999
+
+
+evselect table=mos1_filt.fits energycolumn='PI' withfilteredset=yes  filteredset='mos1_bkg.fits' keepfilteroutput=yes filtertype='expression'  expression='((X,Y) in CIRCLE(27593.352,27093.816,6000))&&!((X,Y) in CIRCLE(27593.352,27093.816,5500))'  withspectrumset=yes spectrumset='mos1_bkg_pi.fits' spectralbinsize=5  withspecranges=yes specchannelmin=0 specchannelmax=11999
+
+
+backscale spectrumset=mos1_source_pi.fits badpixlocation=mos1_filt.fits
+
+backscale spectrumset=mos1_bkg_pi.fits badpixlocation=mos1_filt.fits
+
+
+epatplot set=mos1_source.fits plotfile=mos1_epat.ps useplotfile=yes  withbackgroundset=yes backgroundset=mos1_bkg.fits 
+
+rmfgen rmfset=mos1_rmf.fits spectrumset=mos1_source_pi.fits
+arfgen arfset=mos1_arf.fits spectrumset=mos1_source_pi.fits withrmfset=yes rmfset=mos1_rmf.fits withbadpixcorr=yes badpixlocation=mos1_filt.fits 
+
+
+############################# MOS2 ######################
+#########################################################
+evselect table=mos2_evt.fits withfilteredset=yes expression='(PATTERN <= 12)&&(PI in [150:12000])&&#XMMEA_EM' filteredset=mos2_filt.fits filtertype=expression keepfilteroutput=yes  updateexposure=yes filterexposure=yes
+
+evselect table=mosT_evt.fits withfilteredset=yes expression='(PATTERN <= 12)&&(PI in [150:12000])&&#XMMEA_EM' filteredset=mosT_filt.fits filtertype=expression keepfilteroutput=yes  updateexposure=yes filterexposure=yes
+
+evselect table=mos2_filt.fits withimageset=true imageset=mos2_image.fits xcolumn=X ycolumn=Y imagebinning=binSize ximagebinsize=80 yimagebinsize=80
+
+evselect table=mosT_filt.fits imagebinning=binSize imageset=mosT_image.fits withimageset=yes xcolumn=RAWX ycolumn=TIME ximagebinsize=1 yimagebinsize=10
+
+#isis############
+xcounts=fits_read_img("mosT_image.fits");
+n=[0:array_shape(xcounts)[1]-1:1];
+plot(n,xcounts[n]);
+print(where(xcounts[n]==max(xcounts[n])));
+
+evselect table=mosT_filt.fits withspectrumset=yes spectrumset=mosT_pi.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=11999 expression='(FLAG==0) && (PATTERN<=0) && (RAWX>=285) && (RAWX<=335)' withfilteredset=yes filteredset=mosT_source.fits
+
+
+evselect table=mos2_filt.fits withspectrumset=yes spectrumset=mos2_bkg_pi.fits energycolumn=PI spectralbinsize=5 withspecranges=yes specchannelmin=0 specchannelmax=11999   expression='(FLAG==0) && (PATTERN<=1 || PATTERN==3) && ((DETX,DETY) in BOX(7551.98,-10844.26,3205,1513,0))' withfilteredset=y filteredset=mos2_bkg.fits
+
+
+backscale spectrumset=mosT_pi.fits badpixlocation=mosT_filt.fits
+backscale spectrumset=mos2_bkg_pi.fits badpixlocation=mos2_filt.fits
+
+epatplot set=mosT_source.fits plotfile=mos2_epat.ps useplotfile=yes withbackgroundset=yes backgroundset=mos2_bkg.fits
+
+rmfgen spectrumset=mosT_pi.fits rmfset=mosT_rmf.fits
+
+arfgen spectrumset=mosT_pi.fits arfset=mosT_arf.fits withrmfset=yes rmfset=mosT_rmf.fits badpixlocation=mosT_filt.fits detmaptype=psf
+
+
+
+
+
+

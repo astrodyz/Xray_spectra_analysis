@@ -1,0 +1,62 @@
+# We may not need the detection of point-like sources, except for
+# excluding them; however, it is our responsbility to supply one
+# catalog of point-like sources.
+
+# IN the data directory
+mkdir soudet; cd ./soudet/
+
+# Prepare the used files
+foreach band (broad soft medium hard)
+ln -s ../flux/${band}_thresh.img evt_${band}.fits
+ln -s ../flux/${band}_thresh.expmap exp_${band}.fits
+# change the location of "chandra_band_def" accordingly
+set expstr=`cat ${PUBDIR}/cal_scripts/chandra_band_def | grep "^${band}"`
+set enmea=`echo ${expstr} | awk '{printf("%s\n",$6)}'`
+# Make the PSF map for corresponding band
+mkpsfmap evt_${band}.fits outfile="psfmap_${band}.fits" \
+  energy=${enmea} ecf=0.9 clobber=yes
+end
+
+# Source detection in four bands
+punlearn wavdetect
+foreach band (broad soft medium hard)
+pset wavdetect infile="evt_${band}.fits"
+pset wavdetect psffile="psfmap_${band}.fits"
+pset wavdetect expfile="exp_${band}.fits"
+pset wavdetect outfile="${band}_src.fits"
+pset wavdetect scellfile="${band}_scell.fits"
+pset wavdetect imagefile="${band}_imgfile.fits"
+pset wavdetect defnbkgfile="${band}_nbgd.fits"
+pset wavdetect regfile="${band}_src.reg"
+pset wavdetect verbose=3 clobber=yes mode=h
+wavdetect
+end
+
+# Create the background region file for the broad band, which is used
+# in making point-like source removed images.
+# Modify the generated broad band source region (file "broad_src.reg" 
+# -> "broad_src_mod.reg"), removing the artificial one near the CCD edge.
+punlearn dmmakereg
+dmmakereg "region(broad_src_mod.reg)" src_mod.fits
+mkdir broadsources
+punlearn roi
+pset roi infile=src_mod.fits
+pset roi outsrcfile=broadsources/src%d.fits
+pset roi bkgfactor=0.5 mode=h
+roi
+splitroi "broadsources/src*.fits" exclude
+# You can view it in DS9, but the region list needs to be transfered into
+# FITS format
+dmmakereg "region(exclude.bg.reg)" exclude.bg.fits
+ds9 evt_broad.fits -region exclude.bg.fits &
+
+
+#Optional procedure: check the flare filtering
+# Occasionally, the flare in the Level-II data is caused by the variation
+# of one/some bright point-like sources, instead of the flare of the
+# background; therefore, during the flare filtering in the calibration
+# procedure, prominent poine-like source(s) should be excluded. It is safety
+# that excluding the all detected point-like source; you should use the
+# source detection result and check the flare filtering.
+
+#END

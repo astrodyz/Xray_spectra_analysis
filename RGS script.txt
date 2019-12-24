@@ -1,0 +1,54 @@
+# Program to deal with the RGS data, using the whole region
+
+#cd odf
+pwd
+export analysisdir=`pwd`
+echo $analysisdir
+
+export SAS_DIR=/astro/appsrv/sas/xmmsas_20100423_1801
+export SAS_PATH=/astro/appsrv/sas/xmmsas_20100423_1801
+export SAS_CCFPATH=$SAS_DIR/ccf
+export SAS_ODF=$analysisdir
+heainit
+source $SAS_DIR/sas-setup.sh
+
+
+cifbuild
+export SAS_CCF="$analysisdir/ccf.cif"
+echo $SAS_CCF
+odfingest
+export SAS_ODF="$analysisdir/*.SAS"
+echo $SAS_ODF
+
+
+###extract spectra, I need modeled background and large source region###
+rgsproc orders='1' bkgcorrect=no withmlambdacolumn=yes withsrc=yes srclabel=USER srcstyle=radec srcra=148.969687 srcdec=+69.679383 withdiagoffset=yes withbackgroundmodel=yes auxgtitables=gti.fits xpsfincl=98
+
+ln -s *R1*EVENLI*FIT r1_evt1.fits
+ln -s *R2*EVENLI*FIT r2_evt1.fits 
+
+ln -s *R1*SRCLI*FIT r1_src.fits
+ln -s *R2*SRCLI*FIT r2_src.fits 
+
+
+###create a light curve###
+evselect table=r1_evt1.fits:EVENTS withrateset=yes rateset=ltcrv.fits maketimecolumn=yes timebinsize=100 makeratecolumn=yes expression='(CCDNR==9)&&(REGION(r1_src.fits:RGS1_BACKGROUND,BETA_CORR,XDSP_CORR))'
+
+### This has to been done manually. I generally use this command.
+gtibuild file=gti.txt table=gti.fits
+
+###OR
+###tabgtigen table=r1_ltcrv.fits gtiset=gti.fits expression='(RATE<0.2)'
+
+
+###create an image
+evselect table=r1_evt1.fits:EVENTS withimageset=yes imageset=r1_pi_bc.fits xcolumn=BETA_CORR ycolumn=PI imagebinning=imageSize ximagesize=600 yimagesize=600
+
+evselect table=r1_evt1.fits:EVENTS withimageset=yes imageset=r1_xc_bc.fits xcolumn=BETA_CORR ycolumn=XDSP_CORR imagebinning=imageSize ximagesize=600 yimagesize=600
+
+rgsimplot withspatialset=yes spatialset=r1_xc_bc.fits withendispset=yes endispset=r1_pi_bc.fits srclistset=r1_src.fits srcidlist=3 plotfile=rgs1.ps device=/CPS
+
+
+###combine the spectra
+rgscombine pha='P0206080101R1S004SRSPEC1003.FIT P0206080101R2S005SRSPEC1003.FIT' rmf='P0206080101R1S004RSPMAT1003.FIT P0206080101R2S005RSPMAT1003.FIT' bkg='P0206080101R1S004MBSPEC1000.FIT P0206080101R2S005MBSPEC1000.FIT' filepha=r12_pha.fits filermf=r12_rmf.fits filebkg=r12_mbs.fits min=6 max=38
+

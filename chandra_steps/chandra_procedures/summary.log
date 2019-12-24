@@ -1,0 +1,36 @@
+# A summary to the procedures of Chandra data reduction
+
+数据处理应该包括以下内容：
+1. 对Level-I数据的re-calibration (Step.1),
+2. 点源探测 (Step.4), 
+3. 生成 (平滑后的) 图像 (Step.5), 以及
+4. 抽取关心的目标的X射线能谱 (Step.6)。
+此外，在以上过程中我们需要生成相应的曝光时间图像 (Step.2) 以及背景图像 (Step.3)。
+以下的详细步骤给出了一个例子。CIAO网站上给出了更为详尽的信息：
+
+http://cxc.harvard.edu/ciao/guides/acis_data.html
+
+1. follow calibration.log;
+2. follow expmap.log;
+3. follow background.log;
+4. follow soudet.log;
+5. follow fluximage.log;
+6. follow spec_extract.log.
+
+!!!注意!!!
+1. 制作背景文件时需要的archival particle background以及相应的脚本在
+auxiliary_files文件夹中；
+2. 以上步骤采用的SHELL为CSH，TCSH可以兼容，但BASH (default setting in
+Linux/Mac) 需要修改相应的命令格式，比如：
+set d="3850" -> d="3850"
+setenv INSTR aciss -> export INSTR=aciss
+foreach d (XXX YYY)... end -> for d in XXX YYY; do; ...; done
+以及所有的存储log的格式由
+command >& command.log 改为 command > command.log 2>&1
+
+
+如果需要帮助，请联系：
+sunwei@pmo.ac.cn
+ji@pmo.ac.cn
+
+#END

@@ -1,0 +1,42 @@
+rgsproc orders=’1 2’ bkgcorrect=no withmlambdacolumn=yes spectrumbinning=lambda
+
+ln -s *R1*EVENLI*FIT r1_evt1.fits 
+ln -s *R2*EVENLI*FIT r2_evt1.fits
+
+ln -s *R1*SRCLI*FIT source1.fits 
+ln -s *R2*SRCLI*FIT source2.fits
+
+ln -s *R1*SRSPEC1001*FIT r1_o1_pi.fits 
+ln -s *R2*SRSPEC1001*FIT r2_o1_pi.fits
+
+ln -s *R1*BGSPEC1001*FIT r1_bkg.fits 
+ln -s *R2*BGSPEC1001*FIT r2_bkg.fits
+
+
+
+evselect table=r1_evt1.fits:EVENTS withimageset=yes  imageset=r1_pi_bc.fits xcolumn=BETA_CORR ycolumn=PI  imagebinning=imageSize ximagesize=600 yimagesize=600
+
+evselect table=r1_evt1.fits:EVENTS withimageset=yes  imageset=r1_xc_bc.fits xcolumn=BETA_CORR ycolumn=XDSP_CORR  imagebinning=imageSize ximagesize=600 yimagesize=600
+
+evselect table=r2_evt1.fits:EVENTS withimageset=yes  imageset=r2_pi_bc.fits xcolumn=BETA_CORR ycolumn=PI  imagebinning=imageSize ximagesize=600 yimagesize=600
+
+evselect table=r2_evt1.fits:EVENTS withimageset=yes  imageset=r2_xc_bc.fits xcolumn=BETA_CORR ycolumn=XDSP_CORR  imagebinning=imageSize ximagesize=600 yimagesize=600
+
+
+evselect table=r1_evt1.fits withrateset=yes rateset=r1_ltcrv.fits  maketimecolumn=yes timebinsize=100 makeratecolumn=yes  expression='(CCDNR==9)&&(REGION(source1.fits:RGS1_BACKGROUND,M_LAMBDA,XDSP_CORR))'
+
+
+rgslccorr evlist='r1_evt1.fits r2_evt1.fits' srclist='source1.fits source2.fits'   timebinsize=100 orders='1 2' sourceid=1 outputsrcfilename=r12_o12_lc.fits 
+
+
+rgsrmfgen spectrumset=r1_o1_pi.fits rmfset=r1_o1_rmf.fits  evlist=r1_evt1.fits emin=0.35 emax=2.5 rows=5000 ####r1_o1_pi.fits need to be the original name
+
+rgsrmfgen spectrumset=r2_o1_pi.fits rmfset=r2_o1_rmf.fits  evlist=r2_evt1.fits emin=0.35 emax=2.5 rows=5000  ####r2_o1_pi.fits need to be the original name
+
+
+
+rgscombine pha='r1_o1_pi.fits r2_o1_pi.fits'  rmf='r1_o1_rmf.fits r2_o1_rmf.fits'  bkg='r1_bkg.fits r2_bkg.fits'  filepha='r12_o1_srspec.fits' filermf='r12_o1_rmf.fits'  filebkg='r12_o1_bgspec.fits' rmfgrid=5000
+
+
+
+

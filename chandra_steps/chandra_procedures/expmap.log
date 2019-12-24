@@ -1,0 +1,16 @@
+# IN the data directory
+set d="3850"
+
+# Make exposure and flux maps
+punlearn fluximage
+mkdir flux
+fluximage "repro/evt2_clean.fits[ccd_id=2,3,6,7]" flux/ \
+  bands="broad, soft, medium, hard" binsize=2 clobber=yes \
+  >& fluximage.log
+end
+
+# Because the archival particle background did not include corresponding
+# one for CCD_ID=8, here we draw the exposure and flux maps did not
+# include CCD_ID=8.
+
+# END

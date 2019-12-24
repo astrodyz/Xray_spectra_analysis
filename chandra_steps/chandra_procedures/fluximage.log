@@ -1,0 +1,83 @@
+# IN the data directory
+set d="3850"
+
+# Actually, the flux image has been created during the "expmap.log" as
+# ${band}_flux.img; however, if you want to subtract the partcle background
+# (or the blank sky), to identify the extremely faint feature of the diffuse
+# emission, you need to struggle with the following complex calculations.
+
+cd ./flux/
+
+# Prepare the needed files
+foreach band (broad ultrasoft soft medium hard)
+ln -s ../back/${d}bnorm_${band}_thre.fits ${band}_thresh.bkg
+ln -s ../back/${d}bnormerr_${band}_thre.fits ${band}_thresh.bkgerr
+end
+
+# Smoothing!-----------------------------------------------
+set cbfroot="broad_thresh"
+set sigmin="3.0"
+set sigmax="5.0"
+set sclmin="1.0"
+set sclmax="10.0"
+# Modify those parameters to achieve best smooth: not over- or under-smoothed
+# A better choise is WVT binning. Please refer to Diehl & Statler (2006).
+csmooth infile=${cbfroot}.img outfile=${cbfroot}_s.img \
+  outsigfile=${cbfroot}.sig outsclfile=${cbfroot}.kernel sigmin=${sigmin} \
+  conkerneltype=gauss conmeth=fft clobber=yes sigmax=${sigmax} \
+  sclmode=compute sclmin=${sclmin} sclmax=${sclmax} sclmap=none \
+  bkgmode=user bkgmap=${cbfroot}.bkg bkgerr=${cbfroot}.bkgerr
+punlearn csmooth
+csmooth infile=${cbfroot}.expmap outfile=${cbfroot}_s.expmap \
+    conkerneltype=gauss conmeth=fft clobber=yes sclmap=${cbfroot}.kernel \
+    outsigfile=none outsclfile=none sclmode=user sigmin=${sigmin} \
+    sigmax=${sigmax} sclmin=${sclmin} sclmax=${sclmax}
+csmooth infile=${cbfroot}.bkg outfile=${cbfroot}_s.bkg \
+    conkerneltype=gauss conmeth=fft clobber=yes sclmap=${cbfroot}.kernel \
+    outsigfile=none outsclfile=none sclmode=user sigmin=${sigmin} \
+    sigmax=${sigmax} sclmin=${sclmin} sclmax=${sclmax}
+
+foreach band (ultrasoft soft medium hard)
+foreach c (img expmap bkg)
+csmooth infile=${band}_thresh.${c} outfile=${band}_thresh_s.${c} \
+    conkerneltype=gauss conmeth=fft clobber=yes sclmap=${cbfroot}.kernel \
+    outsigfile=none outsclfile=none sclmode=user sigmin=${sigmin} \
+    sigmax=${sigmax} sclmin=${sclmin} sclmax=${sclmax}
+end
+end
+
+# Create the full-view region file of image coordinate in DS9
+# Generate smoothed net flux images, and filter out the out-view region
+punlearn dmimgcalc
+foreach band (broad ultrasoft soft medium hard)
+dmimgcalc infile="${band}_thresh_s.img,${band}_thresh_s.bkg,${band}_thresh_s.expmap" \
+   infile2=NONE operation="imgout=((img1-img2)/img3)" \
+   outfile="${band}_net_s.img" clobber=yes
+dmcopy "${band}_net_s.img[region(fullview_img.reg)]" \
+  net_${band}.fits clobber=yes
+end
+
+
+# Diffuse emission===================================================
+# preliminary result based on naked-eye selected sources-----
+cp ../soudet/exclude*.reg ./
+punlearn dmfilth
+pset dmfilth srclist=@exclude.src.reg
+pset dmfilth bkglist=@exclude.bg.reg
+pset dmfilth randseed=0 mode=h clobber=yes
+foreach band (broad ultrasoft soft medium hard)
+foreach c (img expmap bkg)
+pset dmfilth infile=${band}_thresh.${c}
+pset dmfilth outfile=${band}_thresh_dif.${c}
+dmfilth
+end
+end
+
+# Smoothing!-----------------------------------------------
+#Smooth and create the net flux image of those 5 bands like the normal
+#data.
+
+# The smoothed image could be used to make X-ray tri-color image and multi-band
+# image.
+
+#END

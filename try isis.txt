@@ -1,0 +1,47 @@
+% delete old data loaded
+delete_data(all_data);
+delete_arf(all_arfs);
+delete_rmf(all_rmfs);
+
+% load the spectrum
+()=load_data("r12_pha.fits");
+% make sure you have loaded the rmf file and the background file simultaneously
+list_data;
+
+% group the spectrum to at least 20 counts per bin
+rebin_data (1, 20);
+
+% notice only the band of 5.8 to 29 Angstrom
+xnotice(1,5.8,29);
+
+% make sure to plot the spectrum vs. wavelength
+fancy_plot_unit("a");
+
+% plot the spectrum
+ylog;
+xrange(6,29);
+plot_unfold(1;dsym=0,dcol=4,decol=5);
+
+% try fitting the spectrum with a simple model
+model("tbabs(1)*(powerlaw(1)+apec(1))");
+fit;
+
+% here if you find the lines in model are too narrow
+% you may try gsmooth first
+model("tbabs(1)*(powerlaw(1)+gsmooth(1,apec(1)))");
+
+
+% check parameters
+list_par;
+
+% change parameters
+set_par("apec(1).O",2,0,0,10");
+
+% estimate the model flux between 10 - 20 A
+(pflux,eflux)=model_flux(1,_A(20.),_A(10.));
+pflux;
+eflux;
+
+% ignore some bad gaps in the spectrum
+ignore(1,12.97934,13.22110);
+

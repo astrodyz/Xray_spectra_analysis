@@ -1,0 +1,31 @@
+# IN the data directory
+set d="3850"
+
+# Data re-calibration (time-consuming)
+punlearn chandra_repro
+pset chandra_repro check_vf_pha=yes # Only needed for VFAINT data, 
+# which is for data of SNR J0550-68.3
+pset chandra_repro mode=h
+chandra_repro >& chandra_repro.log
+
+!!!IMPORTANT!!!
+#The observation-specific bad pixel list must be set by the user in the 
+#ardlib.par parameter file when beginning any analysis session, which means:
+#!!!YOU NEED TO SET THAT EVERY TIME YOU KEEP GOING FURTHER!!!
+#You can make this set like this:
+cd ./repro/
+acis_set_ardlib acisf0${d}_000N003_bpix1.fits
+cd ../
+
+# Filter out potential flares in the data
+cd ./repro/
+dmcopy "acisf0${d}_repro_evt2.fits[energy=500:7000]" evt2_0.5-7keV.fits clobber=yes
+dmextract "evt2_0.5-7keV.fits[bin time=::200]" \
+  lcori_0.5-7keV_200s.lc opt=ltc1 clobber=yes
+deflare lcori_0.5-7keV_200s.lc outfile=lcori_3.0.gti method="sigma" plot=yes \
+  save="lcfileori"
+# Here need to input an enter
+dmcopy "acisf0${d}_repro_evt2.fits[@lcori_3.0.gti]" evt2_clean.fits
+cd ../
+
+#END

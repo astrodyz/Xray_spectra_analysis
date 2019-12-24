@@ -1,0 +1,37 @@
+# In the data directory
+set d="3850"
+cd ../
+set fullpath=`pwd`
+cd ./${d}/
+mkdir spec; cd ./spec/
+
+# Suppose you have two region files: src.reg and bkg.reg
+spec_scr_single.sh "src" src.reg "${fullpath}" "3850"
+spec_scr_single.sh "bkg" bkg.reg "${fullpath}" "3850"
+
+# There are two kinds of spectral analysis you could apply: direct
+# subtraction and double-subtraction, the later one is more accurate
+# but much more sophisticated. Here I give an example of the former one.
+
+dmhedit src_src.pi fi="" op=add ke=backfile va="bkg_src.pi"
+
+# Group the source spectrum, in XIDL
+sp_group,'src_src.pi','bkg_src.pi',cton=3.0,fout='src_SNR3.grp', $
+  chlow=22,chhigh=547
+
+grppha src_src.pi src_SNR3.pi
+group src_SNR3.grp
+exit
+
+# IN XSPEC
+cpd /xw
+setplot en
+data 1:1 src_SNR3.pi
+ignore 1:0.0-0.3 8.0-**
+
+model tbabs*apec
+/*
+
+......
+
+# If you get here, please contact sunwei@pmo.ac.cn for further information.

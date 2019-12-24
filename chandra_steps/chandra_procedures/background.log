@@ -1,0 +1,18 @@
+# IN the data directory
+set d="3850"
+
+# Put the stowed_bck_old.fits into $CALDB/data/chandra/acis/bkgrnd/
+
+# Make blank-sky and particle background
+setenv INSTR aciss
+mkdir back
+cd ./back/
+ln -s ../repro/evt2_clean.fits ${d}.fits
+ls ../repro/*asol*fits* > asol_file
+# Change the location of following script accordingly
+../../make_back.sh $d asol_file "2 3 6 7" >& make_back.log
+../../fluxback.sh $d "${d}_bs.fits" "broad ultrasoft soft medium hard" \
+  "" "" "2 3 6 7"  #Time-consuming
+cd ../
+
+# END
